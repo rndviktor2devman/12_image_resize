@@ -3,48 +3,52 @@ from PIL import Image
 import os
 
 
-def resize_image(args):
-    im = Image.open(args.sourcefile)
-    source_filename, source_extension = os.path.splitext(args.sourcefile)
-    source_width, source_height = im.size
+def save_new_image(filename, image, width, height, out_filename):
+    source_filename, source_extension = os.path.splitext(filename)
 
-    width, height = get_new_size(args, source_width, source_height)
-    im.thumbnail((width, height))
-    if args.output is not None:
-        outfile = args.output
+    image.thumbnail((width, height))
+    if out_filename is not None:
+        outfile = out_filename
     else:
         outfile = "{}___{}x{}{}".format(source_filename, width, height, source_extension)
-    im.save(outfile, "JPEG")
+    image.save(outfile, "JPEG")
 
 
-def get_new_size(args, source_width, source_height):
+def open_image(source_path):
+    return Image.open(source_path)
+
+
+def get_new_size(scale, width, height, source_size):
+    source_width, source_height = source_size
     source_proportion = source_width / source_height
-    if args.scale is not None:
-        scale = check_wrong_size(args.scale, 1)
+    if scale is not None:
         width, height = int(scale * source_width), int(scale * source_height)
-    elif args.width is not None and args.height is None:
-        width = check_wrong_size(args.width, source_width)
+    elif width is not None and height is None:
         height = int(width / source_proportion)
-    elif args.height is not None and args.width is None:
-        height = check_wrong_size(args.height, source_height)
+    elif height is not None and width is None:
         width = int(height * source_proportion)
-    elif args.height is not None and args.width is not None:
-        if args.width / args.height != source_proportion:
-            print("Proportion of the image is changed!")
-        width = check_wrong_size(args.width, source_width)
-        height = check_wrong_size(args.height, source_height)
-    else:
-        print("Size of the picture wasn't changed!")
+    elif height is None and width is None:
         width = source_width
         height = source_height
     return width, height
 
 
+def limit_size(new_value, old_value):
+    if new_value >= old_value:
+        return old_value
+    return new_value
+
+
 def check_wrong_size(new_value, old_value):
     if new_value >= old_value:
         print("We cannot create higher resolution!")
-        return old_value
-    return new_value
+
+
+def check_new_size(source_width, source_height, width, height):
+    check_wrong_size(width, source_width)
+    check_wrong_size(height, source_height)
+    if int(source_width / source_height) != int(width / height):
+        print("Proportion of the image changed!")
 
 
 if __name__ == '__main__':
@@ -55,4 +59,12 @@ if __name__ == '__main__':
     parser.add_argument("--scale", type=float, help="set resize scale of output picture")
     parser.add_argument("--output", type=str, help="output file path")
     args = parser.parse_args()
-    resize_image(args)
+
+    image = open_image(args.sourcefile)
+    source_filename, source_extension = os.path.splitext(args.sourcefile)
+    source_width, source_height = image.size
+    width, height = get_new_size(args.scale, args.width, args.height, image.size)
+    check_new_size(source_width, source_height, width, height)
+    width = limit_size(width, source_width)
+    height = limit_size(height, source_height)
+    save_new_image(args.sourcefile, image, width, height, args.output)
