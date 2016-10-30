@@ -39,18 +39,6 @@ def limit_size(new_value, old_value):
     return new_value
 
 
-def check_wrong_size(new_value, old_value):
-    if new_value >= old_value:
-        print("We cannot create higher resolution!")
-
-
-def check_new_size(source_width, source_height, width, height):
-    check_wrong_size(width, source_width)
-    check_wrong_size(height, source_height)
-    if int(source_width / source_height) != int(width / height):
-        print("Proportion of the image changed!")
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("sourcefile", type=str, help="source file for conversion")
@@ -64,7 +52,10 @@ if __name__ == '__main__':
     source_filename, source_extension = os.path.splitext(args.sourcefile)
     source_width, source_height = image.size
     width, height = get_new_size(args.scale, args.width, args.height, image.size)
-    check_new_size(source_width, source_height, width, height)
+    if width > source_width or height > source_height:
+        print("We cannot create higher resolution!")
+    if int(source_width / source_height) != int(width / height):
+        print("Proportion of the image changed!")
     width = limit_size(width, source_width)
     height = limit_size(height, source_height)
     save_new_image(args.sourcefile, image, width, height, args.output)
